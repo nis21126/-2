@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgriMaster: เกมทดสอบความรู้เกษตรกรรมไทย</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: #f0fdf4;
+        }
+        .card-flip {
+            perspective: 1000px;
+        }
+        .card-inner {
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        .card-flip.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+        .card-front, .card-back {
+            backface-visibility: hidden;
+        }
+        .card-back {
+            transform: rotateY(180deg);
+        }
+    </style>
+</head>
+<div class="min-h-screen flex flex-col text-slate-800">
+
+    <!-- Header -->
+    <header class="bg-emerald-700 text-white shadow-md">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <i data-lucide="sprout" class="w-8 h-8 text-emerald-300"></i>
+                <h1 class="text-xl md:text-2xl font-bold tracking-wide">AgriMaster <span class="text-xs font-normal bg-emerald-800 text-emerald-200 px-2 py-1 rounded-full">ระดับมหาลัย</span></h1>
+            </div>
+            <div id="stats-bar" class="hidden flex items-center space-x-6 text-sm md:text-base font-semibold">
+                <div class="flex items-center space-x-1">
+                    <i data-lucide="trophy" class="w-5 h-5 text-amber-300"></i>
+                    <span>คะแนน: <span id="score-val" class="text-amber-300">0</span></span>
+                </div>
+                <div class="flex items-center space-x-1">
+                    <i data-lucide="clock" class="w-5 h-5 text-emerald-200"></i>
+                    <span>เวลา: <span id="timer-val" class="text-emerald-200">00:00</span></span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-grow max-w-5xl w-full mx-auto p-4 flex flex-col justify-center">
+
+        <!-- 1. START MENU SCREEN -->
+        <div id="screen-start" class="bg-white rounded-2xl shadow-xl p-6 md:p-10 text-center max-w-2xl mx-auto border border-emerald-100">
+            <div class="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6 text-emerald-600">
+                <i data-lucide="book-open-check" class="w-10 h-10"></i>
+            </div>
+            <h2 class="text-2xl md:text-3xl font-bold text-emerald-900 mb-4">ทดสอบความรู้: บทนำและความสำคัญของการเกษตร</h2>
+            <p class="text-slate-600 mb-8 leading-relaxed">
+                ทบทวนเนื้อหาบทเรียนเกษตรกรรมระดับมหาวิทยาลัย ผ่านเกมการเรียนรู้ 3 รูปแบบ (ควิซตัวเลือก, จับคู่การเกษตรแบบพิเศษ และแฟลชการ์ด) สะสมคะแนนและทำเวลาให้ดีที่สุด!
+            </p>
+            
+            <div class="space-y-4 max-w-md mx-auto">
+                <button onclick="startGame('quiz')" class="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-emerald-200 transition flex items-center justify-center space-x-3 text-lg">
+                    <i data-lucide="help-circle"></i>
+                    <span>โหมดควิซตอบคำถาม (Quiz)</span>
+                </button>
+                <button onclick="startGame('matching')" class="w-full py-4 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-teal-200 transition flex items-center justify-center space-x-3 text-lg">
+                    <i data-lucide="grid"></i>
+                    <span>โหมดจับคู่การเกษตรลักษณะพิเศษ</span>
+                </button>
+                <button onclick="startGame('flashcard')" class="w-full py-4 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-amber-200 transition flex items-center justify-center space-x-3 text-lg">
+                    <i data-lucide="layers"></i>
+                    <span>โหมดแฟลชการ์ดสรุปบทเรียน</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 2. QUIZ MODE SCREEN -->
+        <div id="screen-quiz" class="hidden bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-emerald-100">
+            <!-- Progress Bar -->
+            <div class="mb-6">
+                <div class="flex justify-between text-sm text-slate-500 font-semibold mb-2">
+                    <span>คำถามที่ <span id="quiz-current-num">1</span> จาก <span id="quiz-total-num">10</span></span>
+                    <span id="quiz-category" class="text-emerald-600">หมวดหมู่</span>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-2.5">
+                    <div id="quiz-progress" class="bg-emerald-500 h-2.5 rounded-full transition-all duration-300" style="width: 10%"></div>
+                </div>
+            </div>
+
+            <!-- Question -->
+            <h3 id="quiz-question" class="text-xl md:text-2xl font-bold text-slate-800 mb-6 leading-snug">
+                ข้อใดคือความหมายที่ถูกต้องของคำว่า Agriculture ตามรากศัพท์ภาษากรีก?
+            </h3>
+
+            <!-- Options -->
+            <div id="quiz-options" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <!-- Buttons rendered dynamically -->
+            </div>
+
+            <!-- Explanation Box (Initially Hidden) -->
+            <div id="quiz-explanation" class="hidden p-4 bg-slate-50 border-l-4 border-emerald-500 rounded mb-6 text-sm md:text-base text-slate-700">
+                <p class="font-bold mb-1 text-emerald-800">คำอธิบาย:</p>
+                <p id="explanation-text"></p>
+            </div>
+
+            <!-- Next Button -->
+            <div class="flex justify-end">
+                <button id="quiz-next-btn" onclick="nextQuestion()" class="hidden px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg shadow transition flex items-center space-x-2">
+                    <span>ข้อถัดไป</span>
+                    <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 3. MATCHING MODE SCREEN -->
+        <div id="screen-matching" class="hidden bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-emerald-100">
+            <div class="text-center mb-6">
+                <h3 class="text-xl font-bold text-emerald-900">จับคู่: รูปแบบเกษตรกรรมลักษณะพิเศษ กับ นิยาม/หลักการ</h3>
+                <p class="text-sm text-slate-500 mt-1">คลิกเลือกการ์ด 2 ใบเพื่อหาคู่ที่ตรงกัน</p>
+            </div>
+
+            <div id="matching-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4">
+                <!-- Cards rendered dynamically -->
+            </div>
+        </div>
+
+        <!-- 4. FLASHCARD MODE SCREEN -->
+        <div id="screen-flashcard" class="hidden bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-emerald-100 flex flex-col items-center">
+            <div class="w-full max-w-xl mb-4 flex justify-between items-center text-slate-500 font-semibold text-sm">
+                <span>การ์ดที่ <span id="fc-current">1</span> / <span id="fc-total">10</span></span>
+                <span>แตะที่การ์ดเพื่อพลิกดูเฉลย</span>
+            </div>
+
+            <!-- Card -->
+            <div id="flashcard-obj" onclick="flipCard()" class="card-flip w-full max-w-xl h-72 cursor-pointer mb-6">
+                <div class="card-inner relative w-full h-full shadow-lg rounded-2xl border border-emerald-100">
+                    <!-- Front -->
+                    <div class="card-front absolute w-full h-full bg-emerald-50 rounded-2xl p-6 flex flex-col justify-center items-center text-center">
+                        <span id="fc-tag" class="text-xs font-bold bg-emerald-200 text-emerald-800 px-3 py-1 rounded-full mb-4">หัวข้อ</span>
+                        <h3 id="fc-front-text" class="text-xl md:text-2xl font-bold text-emerald-950">คำถาม / หัวข้อสรุป</h3>
+                        <p class="text-xs text-slate-400 mt-6 flex items-center gap-1">
+                            <i data-lucide="rotate-cw" class="w-4 h-4"></i> คลิกเพื่อพลิกดูเนื้อหา
+                        </p>
+                    </div>
+                    <!-- Back -->
+                    <div class="card-back absolute w-full h-full bg-white rounded-2xl p-6 flex flex-col justify-center items-center text-center border-2 border-emerald-500">
+                        <h4 class="text-sm font-bold text-emerald-600 mb-2">สรุปสาระสำคัญ:</h4>
+                        <p id="fc-back-text" class="text-base md:text-lg text-slate-700 leading-relaxed">รายละเอียดเนื้อหาจากบทเรียน</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="flex space-x-4">
+                <button onclick="prevFlashcard()" class="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-xl transition flex items-center gap-1">
+                    <i data-lucide="chevron-left"></i> ย้อนกลับ
+                </button>
+                <button onclick="nextFlashcard()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow transition flex items-center gap-1">
+                    ถัดไป <i data-lucide="chevron-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 5. RESULT SCREEN -->
+        <div id="screen-result" class="hidden bg-white rounded-2xl shadow-xl p-8 text-center max-w-xl mx-auto border border-emerald-100">
+            <div class="w-24 h-24 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6 text-amber-500 shadow-inner">
+                <i data-lucide="award" class="w-12 h-12"></i>
+            </div>
+            <h2 class="text-3xl font-bold text-slate-800 mb-2">การทดสอบเสร็จสิ้น!</h2>
+            <p id="result-mode-title" class="text-slate-500 mb-6">สรุปผลการทดสอบของคุณ</p>
+
+            <div class="bg-slate-50 rounded-xl p-6 mb-8 grid grid-cols-2 gap-4 border border-slate-100">
+                <div>
+                    <p class="text-xs text-slate-400 font-semibold">คะแนนรวม</p>
+                    <p id="result-score" class="text-3xl font-extrabold text-emerald-600">0</p>
+                </div>
+                <div>
+                    <p class="text-xs text-slate-400 font-semibold">เวลาที่ใช้</p>
+                    <p id="result-time" class="text-3xl font-extrabold text-slate-700">00:00</p>
+                </div>
+            </div>
+
+            <div id="result-feedback" class="text-emerald-800 font-medium bg-emerald-50 p-4 rounded-lg mb-8 text-sm">
+                ข้อความประเมินผล
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                <button onclick="showStartScreen()" class="px-6 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-xl transition flex items-center justify-center space-x-2">
+                    <i data-lucide="home"></i>
+                    <span>กลับหน้าหลัก</span>
+                </button>
+                <button id="btn-restart" onclick="restartCurrentMode()" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow transition flex items-center justify-center space-x-2">
+                    <i data-lucide="rotate-ccw"></i>
+                    <span>เล่นใหม่อีกครั้ง</span>
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-100 border-t border-slate-200 py-4 text-center text-xs text-slate-500">
+        สื่อการเรียนรู้ interactive อ้างอิงเนื้อหาจาก PPTX บทที่ ๑ บทนำและความสำคัญของการเกษตรในชีวิตประจำวัน (ระดับมหาวิทยาลัย)
+    </footer>
+
+</div>
+
+<script>
+    // --- DATA STORE FROM PPTX ---
+    const quizData = [
+        {
+            category: "ความหมายของการเกษตร",
+            question: "คำว่า 'Agriculture' มีรากศัพท์จากภาษากรีก โดยคำว่า 'Agri/Ager' และ 'Culture' มีความหมายตรงกับข้อใด?",
+            options: [
+                "Agri = ดิน/ทุ่ง , Culture = การปลูก/ปฏิบัติ",
+                "Agri = การเพาะปลูก , Culture = ธรรมชาติ",
+                "Agri = สัตว์เลี้ยง , Culture = การดูแลรักษาสิ่งแวดล้อม",
+                "Agri = ทรัพยากร , Culture = เทคโนโลยีการผลิต"
+            ],
+            answer: 0,
+            explanation: "Agriculture มาจากภาษากรีก Agri/Ager หมายถึง ทุ่งหรือดิน และ Culture หมายถึง การปลูกหรือปฏิบัติ เมื่อรวมกันจึงหมายถึงการปฏิบัติเกี่ยวกับที่ดินเพื่อให้เกิดผลผลิต"
+        },
+        {
+            category: "ขอบข่ายการเกษตร",
+            question: "ข้อใดเป็นนิยามของ 'เกษตรกรรม' ในเชิงวิทยาศาสตร์ประยุกต์ (Applied Science)?",
+            options: [
+                "การนำความรู้ชีววิทยาพื้นฐานมาท่องจำเพื่อสอบ",
+                "การนำเอาความรู้ทางวิทยาศาสตร์และเทคโนโลยีการเกษตร มาใช้ปฏิบัติเกี่ยวกับที่ดินและสิ่งมีชีวิตในชีวิตประจำวัน",
+                "การใช้แรงงานคนและสัตว์แบบดั้งเดิมโดยไม่พึ่งเครื่องจักร",
+                "การบริหารจัดการงบประมาณแผ่นดินเพื่อการส่งออก"
+            ],
+            answer: 1,
+            explanation: "เกษตรกรรมจัดเป็นวิทยาศาสตร์ประยุกต์ (Applied Science) เนื่องจากเป็นการนำความรู้ทางวิทยาศาสตร์ไปใช้ในกิจกรรมต่างๆ (เทคโนโลยีการเกษตร) ร่วมกับ cultural practice หรือวิธีการทำการเกษตรที่เหมาะสม"
+        },
+        {
+            category: "รูปแบบเกษตรกรรมลักษณะพิเศษ",
+            question: "ข้อใดคือวัตถุประสงค์หลัก 3 ประการของ 'วนเกษตร' (Agroforestry)?",
+            options: [
+                "เพื่อส่งออกไม้ท่อน, เพื่อทำปศุสัตว์ขนาดใหญ่, เพื่อลดภาษีที่ดิน",
+                "การดำรงอยู่ร่วมกันระหว่างพื้นที่ป่ากับการเกษตร, การเพิ่มพื้นที่ป่าไม้, การอนุรักษ์ความหลากหลายทางชีวภาพ",
+                "การยกเลิกการทำนา, การเปลี่ยนป่าเป็นสวนผลไม้, การสร้างเขื่อน",
+                "เพื่อใช้ปุ๋ยเคมีอย่างสูงสุด, เพื่อการทำเกษตรเชิงเดี่ยว, เพื่อสร้างโรงงานอุตสาหกรรม"
+            ],
+            answer: 1,
+            explanation: "วนเกษตรมีวัตถุประสงค์หลัก 3 ข้อ คือ 1) ดำรงอยู่ร่วมกันระหว่างป่าและการเกษตร 2) เพิ่มพื้นที่ป่าไม้ของประเทศ 3) อนุรักษ์ความหลากหลายทางชีวภาพ"
+        },
+        {
+            category: "เกษตรธรรมชาติ",
+            question: "หลักการ 4 ประการของเกษตรธรรมชาติ (Natural Farming) โดย มาซาโนบุ ฟูกูโอกะ ข้อใดกล่าวถูกต้อง?",
+            options: [
+                "ไม่ไถพรวนดิน, ไม่ใช้ปุ๋ยวิทยาศาสตร์, ไม่กำจัดวัชพืช, ไม่ใช้สารเคมีและยาฆ่าแมลง",
+                "ไถพรวนดินลึก, ใส่ปุ๋ยเคมีปริมาณมาก, ถอนหญ้าทุกวัน, ฉีดพ่นยาฆ่าแมลงประจำ",
+                "ใช้เครื่องจักรขนาดใหญ่, ปลูกพืชเชิงเดี่ยว, ปรับระดับดินด้วยสารเคมี, ถางป่าไม้",
+                "ไม่ใช้น้ำชลประทาน, เลี้ยงสัตว์ป่าเท่านั้น, ไม่เก็บเกี่ยวผลผลิต, ไม่ขายสินค้า"
+            ],
+            answer: 0,
+            explanation: "หลักการของ มาซาโนบุ ฟูกูโอกะ ในหนังสือ 'ปฏิวัติยุคสมัยด้วยฟางเส้นเดียว' คือ 1.ไม่ไถพรวนดิน 2.ไม่ใช้ปุ๋ยวิทยาศาสตร์ 3.ไม่กำจัดวัชพืช 4.ไม่ใช้สารเคมีและยาฆ่าแมลง"
+        },
+        {
+            category: "เกษตรทฤษฎีใหม่",
+            question: "การจัดสรรพื้นที่ตามแนวทาง 'เกษตรทฤษฎีใหม่' ขั้นต้น มีสัดส่วนร้อยละตามข้อใด (สระน้ำ : พืชผัก/ไม้ผล : ทำนา : ที่อยู่อาศัย)?",
+            options: [
+                "50 : 20 : 20 : 10",
+                "30 : 30 : 30 : 10",
+                "40 : 30 : 20 : 10",
+                "25 : 25 : 25 : 25"
+            ],
+            answer: 1,
+            explanation: "เกษตรทฤษฎีใหม่จัดสรรที่ดินในสัดส่วน 30:30:30:10 (30% ขุดสระน้ำ, 30% ปลูกพืชผักไม้ผล, 30% ทำนาปลูกข้าว, 10% ที่อยู่อาศัยและอื่นๆ)"
+        },
+        {
+            category: "ความสำคัญของการเกษตร",
+            question: "การท่องเที่ยวเชิงเกษตร (Agri-Tourism) มีลักษณะโดดเด่นอย่างไร?",
+            options: [
+                "เน้นการเข้าพักโรงแรมระดับ 5 ดาวในเมืองใหญ่",
+                "มุ่งเน้นการเรียนรู้วิถีเกษตรกรรม ชนบท การมีส่วนร่วมในกิจกรรมเกษตร และสร้างรายได้แก่ชุมชน",
+                "เน้นการแข่งขันกีฬาเอ็กซ์ตรีมในพื้นที่ป่าสงวน",
+                "การซื้อขายหุ้นบริษัทเกษตรกรรมผ่านระบบออนไลน์"
+            ],
+            answer: 1,
+            explanation: "การท่องเที่ยวเชิงเกษตรมุ่งเน้นให้นักท่องเที่ยวเรียนรู้วิถีเกษตรกรรม วัฒนธรรม ประเพณี ร่วมทำกิจกรรมเกษตร และสร้างรายได้ให้แก่คนในชุมชน"
+        },
+        {
+            category: "เกษตรปลอดภัย (GAP)",
+            question: "ข้อใดคือความหมายของมาตรฐาน GAP (Good Agricultural Practices)?",
+            options: [
+                "ระบบการผลิตที่ไม่เป็นผลร้ายต่อเกษตรกร สิ่งแวดล้อม และได้ผลผลิตปลอดภัยปราศจากสารตกค้างเกินมาตรฐาน",
+                "การห้ามใช้เครื่องจักรกลเกษตรทุกชนิดในฟาร์ม",
+                "การปลูกพืชเฉพาะในโรงเรือนปิดระบบไฮโดรโพนิกส์เท่านั้น",
+                "การเน้นผลิตพืชชนิดเดียวเพื่อการส่งออกอุตสาหกรรมขนาดใหญ่"
+            ],
+            answer: 0,
+            explanation: "GAP หรือระบบเกษตรดีที่เหมาะสม เป็นแนวทางปฏิบัติเพื่อให้ได้ผลผลิตที่ปลอดภัยต่อผู้บริโภค ไม่เกิดพิษภัยต่อเกษตรกรและสิ่งแวดล้อม"
+        },
+        {
+            category: "เกษตรผสมผสาน",
+            question: "คุณลักษณะสำคัญที่สุดของ 'เกษตรผสมผสาน' ที่แตกต่างจากเกษตรเชิงเดี่ยวคืออะไร?",
+            options: [
+                "การใช้สารเคมีเข้มข้นเพื่อเพิ่มผลผลิตอย่างรวดเร็ว",
+                "การดำเนินกิจกรรมเกษตรตั้งแต่ 2 ชนิดขึ้นไปในพื้นที่และเวลาเดียวกัน โดยกิจกรรมต้องเกื้อกูลประโยชน์ต่อกัน",
+                "การปลูกพืชชนิดเดียวทั่วทั้งจังหวัด",
+                "การจ้างแรงงานต่างชาติจำนวนมากเพื่อลดต้นทุน"
+            ],
+            answer: 1,
+            explanation: "เกษตรผสมผสานต้องมีกิจกรรมเกษตร 2 ชนิดขึ้นไป ทำในพื้นที่และเวลาเดียวกัน โดยกิจกรรมเหล่านั้นต้องเกื้อกูลประโยชน์ต่อกันอย่างมีประสิทธิภาพ"
+        },
+        {
+            category: "พลังงานทดแทนจากการเกษตร",
+            question: "ข้อใดจัดเป็นพลังงานชีวมวล/พลังงานทดแทนที่ได้จากผลผลิตทางการเกษตร?",
+            options: [
+                "ถ่านหินลิกไนต์ และ แร่ยูเรเนียม",
+                "ไบโอดีเซลจากน้ำมันพืช/ไขมันสัตว์ และ ก๊าซชีวภาพจากมูลสัตว์/ซากพืช",
+                "พลังงานนิวเคลียร์ และ พลังงานคลื่นทะเล",
+                "ก๊าซธรรมชาติNGV จากอ่าวไทย"
+            ],
+            answer: 1,
+            explanation: "ภาคเกษตรเป็นแหล่งผลิตพลังงานทดแทน เช่น เชื้อเพลิงชีวมวล, ไบโอดีเซลจากน้ำมันพืช/พืชพลังงาน และก๊าซชีวภาพ (Biogas) จากมูลสัตว์และเศษวัสดุการเกษตร"
+        },
+        {
+            category: "เกษตรกรรมแบบยั่งยืน",
+            question: "หลักการพื้นฐาน 3 ด้านของเกษตรกรรมแบบยั่งยืน (Sustainable Agriculture) ประกอบด้วยอะไรบ้าง?",
+            options: [
+                "ความยั่งยืนด้านเศรษฐกิจ, ด้านสิ่งแวดล้อม, และด้านสังคม",
+                "ความยั่งยืนด้านอุตสาหกรรม, ด้านการเมือง, และด้านการทหาร",
+                "ความยั่งยืนด้านการส่งออก, ด้านราคาตลาด, และด้านเทคโนโลยีสารสนเทศ",
+                "ความยั่งยืนด้านเครื่องจักรกล, ด้านสารเคมี, และด้านการขนส่ง"
+            ],
+            answer: 0,
+            explanation: "เกษตรกรรมยั่งยืนยึดหลัก 3 ประการ คือ 1.ความยั่งยืนด้านเศรษฐกิจ 2.ความยั่งยืนด้านสิ่งแวดล้อม 3.ความยั่งยืนด้านสังคม"
+        }
+    ];
+
+    const matchingPairs = [
+        { id: 1, title: "วนเกษตร", desc: "ผสานพืชเกษตร/เลี้ยงสัตว์ ให้เกื้อกูลกับระบบนิเวศป่าไม้" },
+        { id: 2, title: "เกษตรผสมผสาน", desc: "ทำกิจกรรมเกษตร ≥ 2 ชนิดพร้อมกันโดยเกื้อกูลประโยชน์กัน" },
+        { id: 3, title: "เกษตรธรรมชาติ", desc: "ยึดหลัก 4 ไม่: ไม่ไถพรวน, ไม่ใช้ปุ๋ยเคมี, ไม่กำจัดวัชพืช, ไม่ใช้ยาฆ่าแมลง" },
+        { id: 4, title: "เกษตรทฤษฎีใหม่", desc: "จัดสรรที่ดิน 30:30:30:10 เน้นพึ่งพาตนเองและมีสระน้ำในไร่นา" },
+        { id: 5, title: "เกษตรอินทรีย์", desc: "ปฏิเสธสารเคมีสังเคราะห์ทุกชนิด เน้นความสมบูรณ์ของดินด้วยชีววิธี" },
+        { id: 6, title: "เกษตรปลอดภัย (GAP)", desc: "ปฏิบัติตามมาตรฐานการผลิต ปราศจากสารพิษตกค้างเกินเกณฑ์" }
+    ];
+
+    const flashcardsData = [
+        { tag: "นิยาม", front: "Agriculture แปลว่าอะไร?", back: "มาจากภาษากรีก Agri (ดิน/ทุ่ง) + Culture (การปลูก/ปฏิบัติ) หมายถึงการปฏิบัติเกี่ยวกับที่ดินเพื่อให้เกิดผลผลิต" },
+        { tag: "ขอบข่าย", front: "4 สาขาหลักของเกษตรกรรม", back: "1. กสิกรรม (พืช) 2. ปศุสัตว์ (สัตว์) 3. ประมง (สัตว์น้ำ) 4. ด้านป่าไม้" },
+        { tag: "ความสำคัญ", front: "ปัจจัย 4 จากการเกษตร", back: "ตอบสนองความต้องการพื้นฐาน ได้แก่ อาหาร, เครื่องนุ่งห่ม, ที่อยู่อาศัย และยารักษาโรค" },
+        { tag: "วนเกษตร", front: "วัตถุประสงค์ 3 ข้อของวนเกษตร", back: "1. ดำรงอยู่ร่วมกันระหว่างป่าและการเกษตร\n2. เพิ่มพื้นที่ป่าไม้ของประเทศ\n3. อนุรักษ์ความหลากหลายทางชีวภาพ" },
+        { tag: "เกษตรธรรมชาติ", front: "หัวใจของเกษตรธรรมชาติ (ฟูกูโอกะ)", back: "ไม่ไถพรวนดิน / ไม่ใช้ปุ๋ยเคมี / ไม่กำจัดวัชพืช / ไม่ใช้สารเคมีและยาฆ่าแมลง" },
+        { tag: "ทฤษฎีใหม่", front: "สูตรแบ่งพื้นที่ 30:30:30:10", back: "30% สระน้ำ | 30% พืชผักไม้ผล | 30% ทำนาข้าว | 10% ที่อยู่อาศัยและเลี้ยงสัตว์" },
+        { tag: "เกษตรยั่งยืน", front: "3 ความยั่งยืนของเกษตรยั่งยืน", back: "1. ยั่งยืนด้านเศรษฐกิจ\n2. ยั่งยืนด้านสิ่งแวดล้อม\n3. ยั่งยืนด้านสังคม" },
+        { tag: "เกษตรปลอดภัย", front: "GAP ย่อมาจากอะไร?", back: "Good Agricultural Practices (ระบบการเกษตรดีที่เหมาะสม เพื่อความปลอดภัยของผู้บริโภค)" },
+        { tag: "ท่องเที่ยวเชิงเกษตร", front: "Agri-Tourism คืออะไร?", back: "การท่องเที่ยวที่นักท่องเที่ยวได้เรียนรู้และมีส่วนร่วมในวิถีการเกษตร ประเพณี และช่วยสร้างรายได้ให้ชุมชน" },
+        { tag: "พลังงาน", front: "พลังงานทดแทนภาคเกษตร", back: "ชีวมวล (Biomass), ไบโอดีเซลจากน้ำมันพืช/ไขมันสัตว์ และก๊าซชีวภาพ (Biogas) จากมูลสัตว์" }
+    ];
+
+    // --- GAME STATE ---
+    let currentMode = '';
+    let score = 0;
+    let timer = 0;
+    let timerInterval = null;
+    
+    // Quiz State
+    let quizIndex = 0;
+    let quizSelected = false;
+
+    // Matching State
+    let matchedCount = 0;
+    let selectedCards = [];
+
+    // Flashcard State
+    let fcIndex = 0;
+    let isFlipped = false;
+
+    // --- INITIALIZATION ---
+    window.onload = () => {
+        lucide.createIcons();
+    };
+
+    function startTimer() {
+        clearInterval(timerInterval);
+        timer = 0;
+        updateTimerDisplay();
+        timerInterval = setInterval(() => {
+            timer++;
+            updateTimerDisplay();
+        }, 1000);
+    }
+
+    function stopTimer() {
+        clearInterval(timerInterval);
+    }
+
+    function updateTimerDisplay() {
+        const mins = Math.floor(timer / 60).toString().padStart(2, '0');
+        const secs = (timer % 60).toString().padStart(2, '0');
+        document.getElementById('timer-val').innerText = `${mins}:${secs}`;
+    }
+
+    function addScore(pts) {
+        score += pts;
+        document.getElementById('score-val').innerText = score;
+    }
+
+    function hideAllScreens() {
+        document.getElementById('screen-start').classList.add('hidden');
+        document.getElementById('screen-quiz').classList.add('hidden');
+        document.getElementById('screen-matching').classList.add('hidden');
+        document.getElementById('screen-flashcard').classList.add('hidden');
+        document.getElementById('screen-result').classList.add('hidden');
+    }
+
+    function showStartScreen() {
+        stopTimer();
+        hideAllScreens();
+        document.getElementById('stats-bar').classList.add('hidden');
+        document.getElementById('screen-start').classList.remove('hidden');
+    }
+
+    function startGame(mode) {
+        currentMode = mode;
+        score = 0;
+        document.getElementById('score-val').innerText = score;
+        document.getElementById('stats-bar').classList.remove('hidden');
+        hideAllScreens();
+        startTimer();
+
+        if (mode === 'quiz') {
+            quizIndex = 0;
+            document.getElementById('screen-quiz').classList.remove('hidden');
+            loadQuestion();
+        } else if (mode === 'matching') {
+            matchedCount = 0;
+            selectedCards = [];
+            document.getElementById('screen-matching').classList.remove('hidden');
+            initMatchingGame();
+        } else if (mode === 'flashcard') {
+            fcIndex = 0;
+            isFlipped = false;
+            document.getElementById('screen-flashcard').classList.remove('hidden');
+            loadFlashcard();
+        }
+    }
+
+    // --- 1. QUIZ LOGIC ---
+    function loadQuestion() {
+        quizSelected = false;
+        const q = quizData[quizIndex];
+        
+        document.getElementById('quiz-current-num').innerText = quizIndex + 1;
+        document.getElementById('quiz-total-num').innerText = quizData.length;
+        document.getElementById('quiz-category').innerText = q.category;
+        document.getElementById('quiz-progress').style.width = `${((quizIndex + 1) / quizData.length) * 100}%`;
+        document.getElementById('quiz-question').innerText = q.question;
+        
+        document.getElementById('quiz-explanation').classList.add('hidden');
+        document.getElementById('quiz-next-btn').classList.add('hidden');
+
+        const optContainer = document.getElementById('quiz-options');
+        optContainer.innerHTML = '';
+
+        q.options.forEach((opt, idx) => {
+            const btn = document.createElement('button');
+            btn.className = "w-full text-left p-4 rounded-xl border-2 border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 transition flex items-start space-x-3 font-medium text-slate-700";
+            btn.onclick = () => selectOption(idx, btn);
+            btn.innerHTML = `
+                <span class="w-6 h-6 rounded-full bg-slate-100 border border-slate-300 flex items-center justify-center text-xs font-bold text-slate-500 shrink-0 mt-0.5">${String.fromCharCode(65 + idx)}</span>
+                <span>${opt}</span>
+            `;
+            optContainer.appendChild(btn);
+        });
+    }
+
+    function selectOption(idx, btnEl) {
+        if (quizSelected) return;
+        quizSelected = true;
+
+        const q = quizData[quizIndex];
+        const allBtns = document.getElementById('quiz-options').children;
+
+        if (idx === q.answer) {
+            btnEl.className = "w-full text-left p-4 rounded-xl border-2 border-emerald-500 bg-emerald-100 text-emerald-900 font-medium flex items-start space-x-3";
+            addScore(10);
+            confetti({ particleCount: 40, spread: 60, origin: { y: 0.8 } });
+        } else {
+            btnEl.className = "w-full text-left p-4 rounded-xl border-2 border-rose-500 bg-rose-100 text-rose-900 font-medium flex items-start space-x-3";
+            // Highlight correct answer
+            allBtns[q.answer].className = "w-full text-left p-4 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-emerald-900 font-medium flex items-start space-x-3";
+        }
+
+        document.getElementById('explanation-text').innerText = q.explanation;
+        document.getElementById('quiz-explanation').classList.remove('hidden');
+        document.getElementById('quiz-next-btn').classList.remove('hidden');
+    }
+
+    function nextQuestion() {
+        quizIndex++;
+        if (quizIndex < quizData.length) {
+            loadQuestion();
+        } else {
+            endGame();
+        }
+    }
+
+    // --- 2. MATCHING LOGIC ---
+    function initMatchingGame() {
+        const grid = document.getElementById('matching-grid');
+        grid.innerHTML = '';
+
+        // Create cards (Title cards & Description cards)
+        let cards = [];
+        matchingPairs.forEach(pair => {
+            cards.push({ pairId: pair.id, type: 'title', text: pair.title });
+            cards.push({ pairId: pair.id, type: 'desc', text: pair.desc });
+        });
+
+        // Shuffle
+        cards.sort(() => Math.random() - 0.5);
+
+        cards.forEach((cardData, idx) => {
+            const card = document.createElement('div');
+            card.className = "bg-slate-50 border-2 border-slate-200 rounded-xl p-3 md:p-4 min-h-[100px] flex items-center justify-center text-center cursor-pointer hover:border-teal-500 hover:shadow transition select-none text-xs md:text-sm font-semibold text-slate-700";
+            card.innerText = cardData.text;
+            card.dataset.pairId = cardData.pairId;
+            card.dataset.index = idx;
+
+            card.onclick = () => handleCardClick(card);
+            grid.appendChild(card);
+        });
+    }
+
+    function handleCardClick(card) {
+        if (card.classList.contains('matched') || selectedCards.includes(card) || selectedCards.length >= 2) return;
+
+        card.classList.add('border-teal-500', 'bg-teal-50', 'text-teal-900');
+        selectedCards.push(card);
+
+        if (selectedCards.length === 2) {
+            const [c1, c2] = selectedCards;
+            if (c1.dataset.pairId === c2.dataset.pairId && c1.dataset.index !== c2.dataset.index) {
+                // Match!
+                setTimeout(() => {
+                    c1.classList.remove('bg-teal-50', 'border-teal-500');
+                    c2.classList.remove('bg-teal-50', 'border-teal-500');
+                    c1.classList.add('bg-emerald-500', 'text-white', 'border-emerald-600', 'matched', 'opacity-60');
+                    c2.classList.add('bg-emerald-500', 'text-white', 'border-emerald-600', 'matched', 'opacity-60');
+                    selectedCards = [];
+                    matchedCount++;
+                    addScore(15);
+
+                    if (matchedCount === matchingPairs.length) {
+                        setTimeout(endGame, 500);
+                    }
+                }, 400);
+            } else {
+                // Not Match
+                setTimeout(() => {
+                    c1.classList.remove('border-teal-500', 'bg-teal-50', 'text-teal-900');
+                    c2.classList.remove('border-teal-500', 'bg-teal-50', 'text-teal-900');
+                    selectedCards = [];
+                }, 800);
+            }
+        }
+    }
+
+    // --- 3. FLASHCARD LOGIC ---
+    function loadFlashcard() {
+        const cardObj = document.getElementById('flashcard-obj');
+        cardObj.classList.remove('flipped');
+        isFlipped = false;
+
+        const fc = flashcardsData[fcIndex];
+        document.getElementById('fc-current').innerText = fcIndex + 1;
+        document.getElementById('fc-total').innerText = flashcardsData.length;
+        document.getElementById('fc-tag').innerText = fc.tag;
+        document.getElementById('fc-front-text').innerText = fc.front;
+        document.getElementById('fc-back-text').innerText = fc.back;
+    }
+
+    function flipCard() {
+        const cardObj = document.getElementById('flashcard-obj');
+        isFlipped = !isFlipped;
+        if (isFlipped) {
+            cardObj.classList.add('flipped');
+        } else {
+            cardObj.classList.remove('flipped');
+        }
+    }
+
+    function nextFlashcard() {
+        if (fcIndex < flashcardsData.length - 1) {
+            fcIndex++;
+            loadFlashcard();
+            addScore(5);
+        } else {
+            endGame();
+        }
+    }
+
+    function prevFlashcard() {
+        if (fcIndex > 0) {
+            fcIndex--;
+            loadFlashcard();
+        }
+    }
+
+    // --- END GAME & RESULTS ---
+    function endGame() {
+        stopTimer();
+        hideAllScreens();
+        document.getElementById('screen-result').classList.remove('hidden');
+
+        document.getElementById('result-score').innerText = score;
+        
+        const mins = Math.floor(timer / 60).toString().padStart(2, '0');
+        const secs = (timer % 60).toString().padStart(2, '0');
+        document.getElementById('result-time').innerText = `${mins}:${secs}`;
+
+        let modeName = '';
+        if (currentMode === 'quiz') modeName = 'โหมดควิซตอบคำถาม';
+        else if (currentMode === 'matching') modeName = 'โหมดจับคู่เกษตรลักษณะพิเศษ';
+        else if (currentMode === 'flashcard') modeName = 'โหมดแฟลชการ์ดสรุปบทเรียน';
+        
+        document.getElementById('result-mode-title').innerText = `ผลการเล่น: ${modeName}`;
+
+        // Feedback Text
+        let feedback = '';
+        if (score >= 80) {
+            feedback = "ยอดเยี่ยมมาก! คุณมีความเข้าใจในบทเรียนเกษตรกรรมระดับมหาวิทยาลัยอย่างทอดแท้";
+            confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+        } else if (score >= 50) {
+            feedback = "ทำได้ดี! คุณมีความรู้พื้นฐานแน่นพอสมควร ลองทบทวนจุดที่ผิดพลาดอีกนิดรับรองเต็มแน่นอน";
+        } else {
+            feedback = "พยายามได้ดี! ลองกลับไปอ่านทบทวนบทเรียนอีกครั้ง แล้วมาทดสอบใหม่นะครับ";
+        }
+        document.getElementById('result-feedback').innerText = feedback;
+    }
+
+    function restartCurrentMode() {
+        startGame(currentMode);
+    }
+</script>
+</body>
+</html>
